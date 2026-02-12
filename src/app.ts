@@ -4,6 +4,8 @@ import { specialtyRoutes } from "./app/module/specialty/specialty.route";
 import { authRoutes } from "./app/module/auth/auth.route";
 import { globalErrorHandler } from "./middleware/globalErrorHandler";
 import { notFound } from "./middleware/notFound";
+import { userRoutes } from "./app/module/user/user.route";
+import { doctorRoutes } from "./app/module/doctor/doctor.route";
 
 const app: Application = express();
 
@@ -18,6 +20,12 @@ app.use("/api/v1/auth", authRoutes);
 
 // ! Specialty Routes.
 app.use("/api/v1/specialties", specialtyRoutes);
+
+// ! (Doctors/admin/superAdmin) Creation Routes.
+app.use("/api/v1/users", userRoutes);
+
+// ! Doctors Routes.
+app.use("/api/v1/doctors", doctorRoutes);
 
 // ! Global Error Handler.
 app.use(globalErrorHandler);
