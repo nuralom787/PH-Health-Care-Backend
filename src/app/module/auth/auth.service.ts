@@ -2,18 +2,6 @@ import { UserStatus } from "../../../generated/prisma/enums";
 import { auth } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
 import { IRegisterUserPayload } from "../../shared/interface&types";
-// import { prisma } from "../../lib/prisma";
-
-// const getAllSpecialties = async () => {
-//     try {
-//         const res = await prisma.specialty.findMany({});
-
-//         return res;
-//     } catch (err) {
-//         console.log(err);
-//         throw err;
-//     }
-// };
 
 
 const createUser = async (payload: IRegisterUserPayload) => {
@@ -32,19 +20,29 @@ const createUser = async (payload: IRegisterUserPayload) => {
             throw new Error("User Not Created! Something was wrong.");
         };
 
-        const patient = await prisma.$transaction(async (tx) => {
-            const patientProfile = await tx.patient.create({
-                data: {
-                    userId: res.user.id,
-                    name: payload.name,
-                    email: payload.email
-                }
-            })
+        await prisma.$transaction(async (tx) => {
+            try {
+                const patientProfile = await tx.patient.create({
+                    data: {
+                        userId: res.user.id,
+                        name: payload.name,
+                        email: payload.email
+                    }
+                });
 
-            return patientProfile;
-        })
+                return { ...res, patientProfile };
 
-        return { ...res, patient };
+            } catch (dbError) {
+                console.error("Profile creation failed, deleting auth user...");
+                await prisma.user.delete({
+                    where: {
+                        id: res.user.id
+                    }
+                });
+
+                throw dbError;
+            }
+        });
     } catch (err) {
         console.log(err);
         throw err;
@@ -77,47 +75,7 @@ const loginUser = async (email: string, password: string) => {
 };
 
 
-// const updateSpecialty = async (payload: Specialty): Promise<Specialty> => {
-//     try {
-//         const res = await prisma.specialty.update({
-//             where: {
-//                 id: payload.id
-//             },
-//             data: payload
-//         });
-
-//         return res;
-//     } catch (err) {
-//         console.log(err);
-//         throw err;
-//     }
-// };
-
-
-// const deleteSpecialty = async (id: string) => {
-//     try {
-//         const res = await prisma.specialty.update({
-//             where: {
-//                 id,
-//                 isDeleted: false
-//             },
-//             data: {
-//                 isDeleted: true,
-//                 deleted: new Date()
-//             }
-//         });
-
-//         return res;
-//     } catch (err) {
-//         console.log(err);
-//         throw err;
-//     }
-// };
-
 export const authService = {
     createUser,
     loginUser,
-    // getAllSpecialties,
-    // updateSpecialty,
-    // deleteSpecialty
 };
