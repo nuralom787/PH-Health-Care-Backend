@@ -1,5 +1,6 @@
 import { UserStatus } from "../../../generated/prisma/enums";
 import { auth } from "../../lib/auth";
+import { prisma } from "../../lib/prisma";
 import { IRegisterUserPayload } from "../../shared/interface&types";
 // import { prisma } from "../../lib/prisma";
 
@@ -31,11 +32,19 @@ const createUser = async (payload: IRegisterUserPayload) => {
             throw new Error("User Not Created! Something was wrong.");
         };
 
-        // const patient = await prisma.$transaction(async (tx) => {
-        //     await tx.
-        // })
+        const patient = await prisma.$transaction(async (tx) => {
+            const patientProfile = await tx.patient.create({
+                data: {
+                    userId: res.user.id,
+                    name: payload.name,
+                    email: payload.email
+                }
+            })
 
-        return res;
+            return patientProfile;
+        })
+
+        return { ...res, patient };
     } catch (err) {
         console.log(err);
         throw err;
@@ -65,7 +74,7 @@ const loginUser = async (email: string, password: string) => {
         console.log(err);
         throw err;
     }
-}
+};
 
 
 // const updateSpecialty = async (payload: Specialty): Promise<Specialty> => {
