@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma";
+import { IUpdateDoctor } from "../../shared/interface&types";
 
 
 const getAllDoctors = async () => {
@@ -22,6 +23,104 @@ const getAllDoctors = async () => {
 };
 
 
+const getDoctorById = async (doctorId: string) => {
+    try {
+        const res = await prisma.doctor.findUnique({
+            where: {
+                id: doctorId
+            },
+            include: {
+                user: true,
+                specialties: {
+                    include: {
+                        specialty: true
+                    }
+                }
+            }
+        });
+
+        return res;
+    } catch (err) {
+        console.log(err);
+        throw err;
+    }
+};
+
+
+const updateDoctor = async (payload: Partial<IUpdateDoctor>, doctorId: string) => {
+    try {
+        const updatedData = await prisma.$transaction(async (tx) => {
+            const doctorRes = await tx.doctor.update({
+                where: {
+                    id: doctorId
+                },
+                data: payload
+            });
+
+
+            const userRes = await tx.user.update({
+                where: {
+                    id: doctorRes.userId
+                },
+                data: {
+                    name: payload.name,
+                    image: payload.profilePhoto
+                }
+            })
+
+            return { ...doctorRes, user: userRes };
+        });
+
+        return updatedData;
+    }
+    catch (err) {
+        console.log("Update Doctor Error: ", err);
+        throw err;
+    }
+};
+
+
+const deleteDoctor = async (doctorId: string) => {
+    try {
+        const data = await prisma.$transaction(async (tx) => {
+            const doctorRes = await tx.doctor.update({
+                where: {
+                    id: doctorId,
+                    isDeleted: false
+                },
+                data: {
+                    isDeleted: true,
+                    deletedAt: new Date()
+                }
+            });
+
+
+            const userRes = await tx.user.update({
+                where: {
+                    id: doctorRes.userId,
+                    isDeleted: false
+                },
+                data: {
+                    isDeleted: true,
+                    deletedAt: new Date()
+                }
+            });
+
+            return { ...doctorRes, user: userRes };
+        });
+
+        return data;
+    }
+    catch (err) {
+        console.log("Delete Doctor Error: ", err);
+        throw err;
+    }
+};
+
+
 export const doctorService = {
     getAllDoctors,
+    getDoctorById,
+    updateDoctor,
+    deleteDoctor,
 };
