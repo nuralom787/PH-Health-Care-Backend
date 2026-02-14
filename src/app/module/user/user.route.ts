@@ -1,39 +1,11 @@
-import { NextFunction, Request, Response, Router } from "express";
+import { Router } from "express";
 import { userController } from "./user.controller";
-import z from "zod";
-import { Gender } from "../../../generated/prisma/enums";
-
-const createDoctorZodSchema = z.object({
-    password: z.string("password is required").min(6, "minimum 6 and maximum 12 character").max(12, "minimum 6 and maximum 12 character"),
-    doctor: z.object({
-        name: z.string("Name is required").min(5, "minimum 5 and maximum 20 character").max(20, "minimum 5 and maximum 20 character"),
-        email: z.email("Invalid Email Address"),
-        contactNumber: z.string("contact number is required").min(11, "minimum 11 character").max(14, "maximum 14 character"),
-        address: z.string().min(10).max(100).optional(),
-        registrationNumber: z.string("Registration Number is required"),
-        experience: z.int("Experience must be integer").nonnegative("Experience cannot be negative").optional(),
-        gender: z.enum([Gender.MALE, Gender.FEMALE, Gender.OTHERS], "Gender must be either MALE or FEMALE"),
-        appointmentFee: z.number("Appointment fee must be a number").nonnegative("Appointment fee cannot be negative"),
-        qualification: z.string("Qualification is required").min(2, "minimum 2 and maximum 50 character").max(50, "minimum 2 and maximum 50 character"),
-        currentWorkingPlace: z.string("Current Working Place is required").min(2, "current working place must be at least 2 character").max(50, "current working place at most 50 character"),
-        designation: z.string("designation is required").min(2, "minimum 2 and maximum 50 character").max(50)
-    }),
-    specialties: z.array(z.uuid(), "Specialties must be an array of strings").min(1, "At least one specialty is required")
-});
-
+import { validateRequest } from "../../../middleware/validateRequest";
+import { createDoctorZodSchema } from "./user.validation";
 
 const router = Router();
 
-router.post("/create-doctor", (req: Request, res: Response, next: NextFunction) => {
-    const parseResult = createDoctorZodSchema.safeParse(req.body);
-    if (!parseResult.success) {
-        next(parseResult.error);
-    };
-
-    req.body = parseResult.data;
-
-    next();
-}, userController.createDoctor);
+router.post("/create-doctor", validateRequest(createDoctorZodSchema), userController.createDoctor);
 
 
 export const userRoutes = router;

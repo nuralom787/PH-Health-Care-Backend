@@ -4,7 +4,7 @@ export interface IRegisterUserPayload {
     name: string;
     email: string;
     password: string;
-}
+};
 
 export interface ICreateDoctorPayload {
     password: string;
@@ -23,7 +23,7 @@ export interface ICreateDoctorPayload {
         designation: string;
     };
     specialties: string[];
-}
+};
 
 export interface IUpdateDoctor {
     name?: string;
@@ -36,4 +36,16 @@ export interface IUpdateDoctor {
     qualification?: string;
     currentWorkingPlace?: string;
     designation?: string;
-}
+};
+
+export interface TErrorSources {
+    path: string;
+    message: string;
+};
+
+export interface TErrorResponse {
+    success: boolean;
+    message: string;
+    errorSources?: TErrorSources[];
+    error?: unknown
+};
