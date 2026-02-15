@@ -1,7 +1,10 @@
+import status from "http-status";
+import AppErrors from "../../../errorsHelpers/AppErrors";
 import { UserStatus } from "../../../generated/prisma/enums";
 import { auth } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
 import { IRegisterUserPayload } from "../../shared/interface&types";
+import { tokenUtils } from "../../utils/token";
 
 
 const createUser = async (payload: IRegisterUserPayload) => {
@@ -17,7 +20,7 @@ const createUser = async (payload: IRegisterUserPayload) => {
         });
 
         if (!res.user) {
-            throw new Error("User Not Created! Something was wrong.");
+            throw new AppErrors(status.NOT_MODIFIED, "User Not Created! Something was wrong.");
         };
 
         await prisma.$transaction(async (tx) => {
@@ -45,7 +48,7 @@ const createUser = async (payload: IRegisterUserPayload) => {
         });
     } catch (err) {
         console.log(err);
-        throw err;
+        throw new AppErrors(status.INTERNAL_SERVER_ERROR, "Internal Server Error!");
     }
 };
 
@@ -60,17 +63,38 @@ const loginUser = async (email: string, password: string) => {
         });
 
         if (!res.user || res.user.isDeleted) {
-            throw new Error("User not signin! Please try again.");
+            throw new AppErrors(status.NOT_FOUND, "Internal Server Error!");;
         };
 
         if (res.user.status === UserStatus.BLOCKED) {
-            throw new Error("User is Blocked!!");
+            throw new AppErrors(status.FORBIDDEN, "User is Blocked!!");
         };
 
-        return res;
+        const accessToken = tokenUtils.getAccessToken({
+            userId: res.user.id,
+            name: res.user.name,
+            email: res.user.email,
+            emailVerified: res.user.emailVerified,
+            role: res.user.role,
+            status: res.user.status,
+            isDeleted: res.user.isDeleted,
+        });
+
+        const refreshToken = tokenUtils.getRefreshToken({
+            userId: res.user.id,
+            name: res.user.name,
+            email: res.user.email,
+            emailVerified: res.user.emailVerified,
+            role: res.user.role,
+            status: res.user.status,
+            isDeleted: res.user.isDeleted,
+        });
+
+
+        return { ...res, accessToken, refreshToken };
     } catch (err) {
         console.log(err);
-        throw err;
+        throw new AppErrors(status.INTERNAL_SERVER_ERROR, "Internal Server Error!");
     }
 };
 

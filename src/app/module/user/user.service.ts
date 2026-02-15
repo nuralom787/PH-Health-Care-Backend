@@ -1,3 +1,5 @@
+import status from "http-status";
+import AppErrors from "../../../errorsHelpers/AppErrors";
 import { Role, Specialty } from "../../../generated/prisma/client";
 import { auth } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
@@ -16,7 +18,7 @@ const createDoctor = async (payload: ICreateDoctorPayload) => {
             });
 
             if (!specialty) {
-                throw new Error("Specialty not Found!!")
+                throw new AppErrors(status.NOT_FOUND, "Specialty not Found!!");
             };
 
             specialties.push(specialty);
@@ -29,7 +31,7 @@ const createDoctor = async (payload: ICreateDoctorPayload) => {
         });
 
         if (userExists) {
-            throw new Error("User with this email is already exists");
+            throw new AppErrors(status.FORBIDDEN, "User with this email is already exists")
         };
 
         const userData = await auth.api.signUpEmail({
@@ -95,12 +97,12 @@ const createDoctor = async (payload: ICreateDoctorPayload) => {
                 }
             });
 
-            throw err
+            throw new AppErrors(status.INTERNAL_SERVER_ERROR, "Internal Server Error!");
         }
     }
     catch (err) {
         console.log(err);
-        throw err;
+        throw new AppErrors(status.INTERNAL_SERVER_ERROR, "Internal Server Error!");
     }
 };
 

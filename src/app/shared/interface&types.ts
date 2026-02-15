@@ -47,5 +47,6 @@ export interface TErrorResponse {
     success: boolean;
     message: string;
     errorSources?: TErrorSources[];
-    error?: unknown
+    error?: unknown;
+    stack?: string
 };

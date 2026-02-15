@@ -1,3 +1,5 @@
+import status from "http-status";
+import AppErrors from "../../../errorsHelpers/AppErrors";
 import { prisma } from "../../lib/prisma";
 import { IUpdateDoctor } from "../../shared/interface&types";
 
@@ -18,7 +20,7 @@ const getAllDoctors = async () => {
         return res;
     } catch (err) {
         console.log(err);
-        throw err;
+        throw new AppErrors(status.INTERNAL_SERVER_ERROR, "Internal Server Error!");;
     }
 };
 
@@ -42,7 +44,7 @@ const getDoctorById = async (doctorId: string) => {
         return res;
     } catch (err) {
         console.log(err);
-        throw err;
+        throw new AppErrors(status.INTERNAL_SERVER_ERROR, "Internal Server Error!");;
     }
 };
 
@@ -75,7 +77,7 @@ const updateDoctor = async (payload: Partial<IUpdateDoctor>, doctorId: string) =
     }
     catch (err) {
         console.log("Update Doctor Error: ", err);
-        throw err;
+        throw new AppErrors(status.INTERNAL_SERVER_ERROR, "Internal Server Error!");;
     }
 };
 
@@ -113,7 +115,7 @@ const deleteDoctor = async (doctorId: string) => {
     }
     catch (err) {
         console.log("Delete Doctor Error: ", err);
-        throw err;
+        throw new AppErrors(status.INTERNAL_SERVER_ERROR, "Internal Server Error!");;
     }
 };
 
