@@ -1,15 +1,17 @@
 import { Router } from "express";
 import { specialtyController } from "./specialty.controller";
+import { checkAuth } from "../../../middleware/checkAuth";
+import { Role } from "../../../generated/prisma/enums";
 
 const router = Router();
 
 router.get("/", specialtyController.getAllSpecialties)
 
-router.post("/create-specialty", specialtyController.createSpecialty);
+router.post("/create-specialty", checkAuth(Role.ADMIN, Role.SUPER_ADMIN), specialtyController.createSpecialty);
 
-router.patch("/update-specialty", specialtyController.updateSpecialty);
+router.patch("/update-specialty", checkAuth(Role.ADMIN, Role.SUPER_ADMIN), specialtyController.updateSpecialty);
 
-router.delete("/delete-specialty/:id", specialtyController.deleteSpecialty);
+router.delete("/delete-specialty/:id", checkAuth(Role.ADMIN, Role.SUPER_ADMIN), specialtyController.deleteSpecialty);
 
 
 export const specialtyRoutes = router;

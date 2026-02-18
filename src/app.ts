@@ -6,7 +6,6 @@ import { globalErrorHandler } from "./middleware/globalErrorHandler";
 import { notFound } from "./middleware/notFound";
 import { userRoutes } from "./app/module/user/user.route";
 import { doctorRoutes } from "./app/module/doctor/doctor.route";
-import AppErrors from "./errorsHelpers/AppErrors";
 import status from "http-status";
 
 const app: Application = express();
@@ -35,8 +34,11 @@ app.use(globalErrorHandler);
 
 // ! Basic route
 app.get('/', async (req: Request, res: Response) => {
-    throw new AppErrors(status.BAD_REQUEST, "Testing Errors")
-    res.status(200).json({ message: "Running PH Health Care Server..." });
+    // throw new AppErrors(status.BAD_REQUEST, "Testing Errors")
+    res.status(status.OK).json({
+        success: true,
+        message: "Running PH Health Care Server..."
+    });
 });
 
 // ! Not Found.

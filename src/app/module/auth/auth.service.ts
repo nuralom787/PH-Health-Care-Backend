@@ -8,46 +8,68 @@ import { tokenUtils } from "../../utils/token";
 
 
 const createUser = async (payload: IRegisterUserPayload) => {
+    const { name, email, password } = payload;
+
+    const res = await auth.api.signUpEmail({
+        body: {
+            name,
+            email,
+            password
+        }
+    });
+
+    if (!res.user) {
+        throw new AppErrors(status.NOT_MODIFIED, "User Not Created! Something was wrong.");
+    };
+
     try {
-        const { name, email, password } = payload;
+        const patient = await prisma.$transaction(async (tx) => {
+            const patientProfile = await tx.patient.create({
+                data: {
+                    userId: res.user.id,
+                    name: payload.name,
+                    email: payload.email
+                }
+            });
 
-        const res = await auth.api.signUpEmail({
-            body: {
-                name,
-                email,
-                password
-            }
+            return patientProfile;
+        }
+        );
+
+        const accessToken = tokenUtils.getAccessToken({
+            userId: res.user.id,
+            name: res.user.name,
+            email: res.user.email,
+            emailVerified: res.user.emailVerified,
+            role: res.user.role,
+            status: res.user.status,
+            isDeleted: res.user.isDeleted,
         });
 
-        if (!res.user) {
-            throw new AppErrors(status.NOT_MODIFIED, "User Not Created! Something was wrong.");
-        };
+        const refreshToken = tokenUtils.getRefreshToken({
+            userId: res.user.id,
+            name: res.user.name,
+            email: res.user.email,
+            emailVerified: res.user.emailVerified,
+            role: res.user.role,
+            status: res.user.status,
+            isDeleted: res.user.isDeleted,
+        });
 
-        await prisma.$transaction(async (tx) => {
-            try {
-                const patientProfile = await tx.patient.create({
-                    data: {
-                        userId: res.user.id,
-                        name: payload.name,
-                        email: payload.email
-                    }
-                });
-
-                return { ...res, patientProfile };
-
-            } catch (dbError) {
-                console.error("Profile creation failed, deleting auth user...");
-                await prisma.user.delete({
-                    where: {
-                        id: res.user.id
-                    }
-                });
-
-                throw dbError;
+        return {
+            accessToken,
+            refreshToken,
+            ...res,
+            patient
+        }
+    }
+    catch (err) {
+        console.error("Profile creation failed, deleting auth user...", err);
+        await prisma.user.delete({
+            where: {
+                id: res.user.id
             }
         });
-    } catch (err) {
-        console.log(err);
         throw new AppErrors(status.INTERNAL_SERVER_ERROR, "Internal Server Error!");
     }
 };
