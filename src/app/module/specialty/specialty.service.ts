@@ -1,5 +1,5 @@
 import status from "http-status";
-import AppErrors from "../../../errorsHelpers/AppErrors";
+import AppErrors from "../../errorsHelpers/AppErrors";
 import { Specialty } from "../../../generated/prisma/client";
 import { prisma } from "../../lib/prisma";
 

@@ -19,3 +19,16 @@ export const createDoctorZodSchema = z.object({
     }),
     specialties: z.array(z.uuid(), "Specialties must be an array of strings").min(1, "At least one specialty is required")
 });
+
+// * Create Admin Zod Validation.
+export const createAdminZodSchema = z.object({
+    password: z.string("password is required").min(6, "minimum 6 and maximum 12 character").max(12, "minimum 6 and maximum 12 character"),
+    admin: z.object({
+        name: z.string("Name is required").min(5, "minimum 5 and maximum 20 character").max(20, "minimum 5 and maximum 20 character"),
+        email: z.email("Invalid Email Address"),
+        contactNumber: z.string("contact number is required").min(11, "minimum 11 character").max(14, "maximum 14 character"),
+        address: z.string().min(10).max(100).optional(),
+        gender: z.enum([Gender.MALE, Gender.FEMALE], "Gender must be either MALE OR FEMALE"),
+    }),
+    permissions: z.array(z.uuid(), "Permissions must be an array of strings").min(1, "At least one permission is required")
+});

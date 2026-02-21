@@ -5,7 +5,7 @@
 import { NextFunction, Request, Response } from "express";
 import { env } from "../config/env";
 import status from "http-status";
-import { TErrorResponse, TErrorSources } from "../app/shared/interface&types";
+import { TErrorResponse, TErrorSources } from "../shared/interface&types";
 import z from "zod";
 import AppErrors from "../errorsHelpers/AppErrors";
 

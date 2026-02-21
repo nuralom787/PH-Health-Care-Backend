@@ -1,35 +1,16 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import status from "http-status";
-import AppErrors from "../../../errorsHelpers/AppErrors";
+import AppErrors from "../../errorsHelpers/AppErrors";
 import { prisma } from "../../lib/prisma";
 import { IUpdateDoctor } from "../../shared/interface&types";
+import { UserStatus } from "../../../generated/prisma/enums";
 
 
 const getAllDoctors = async () => {
     try {
         const res = await prisma.doctor.findMany({
-            include: {
-                user: true,
-                specialties: {
-                    include: {
-                        specialty: true
-                    }
-                }
-            }
-        });
-
-        return res;
-    } catch (err) {
-        console.log(err);
-        throw new AppErrors(status.INTERNAL_SERVER_ERROR, "Internal Server Error!");;
-    }
-};
-
-
-const getDoctorById = async (doctorId: string) => {
-    try {
-        const res = await prisma.doctor.findUnique({
             where: {
-                id: doctorId
+                isDeleted: false
             },
             include: {
                 user: true,
@@ -43,7 +24,45 @@ const getDoctorById = async (doctorId: string) => {
 
         return res;
     } catch (err) {
-        console.log(err);
+        // console.log(err);
+        throw new AppErrors(status.INTERNAL_SERVER_ERROR, "Internal Server Error!");;
+    }
+};
+
+
+const getDoctorById = async (doctorId: string) => {
+    try {
+        const res = await prisma.doctor.findUnique({
+            where: {
+                id: doctorId,
+                isDeleted: false
+            },
+            include: {
+                user: true,
+                specialties: {
+                    include: {
+                        specialty: true
+                    }
+                },
+                appointments: {
+                    include: {
+                        patient: true,
+                        schedule: true,
+                        prescription: true,
+                    }
+                },
+                doctorSchedules: {
+                    include: {
+                        schedule: true
+                    }
+                },
+                review: true
+            }
+        });
+
+        return res;
+    } catch (err) {
+        // console.log(err);
         throw new AppErrors(status.INTERNAL_SERVER_ERROR, "Internal Server Error!");;
     }
 };
@@ -51,32 +70,68 @@ const getDoctorById = async (doctorId: string) => {
 
 const updateDoctor = async (payload: Partial<IUpdateDoctor>, doctorId: string) => {
     try {
-        const updatedData = await prisma.$transaction(async (tx) => {
-            const doctorRes = await tx.doctor.update({
-                where: {
-                    id: doctorId
-                },
-                data: payload
-            });
-
-
-            const userRes = await tx.user.update({
-                where: {
-                    id: doctorRes.userId
-                },
-                data: {
-                    name: payload.name,
-                    image: payload.profilePhoto
-                }
-            })
-
-            return { ...doctorRes, user: userRes };
+        const isDoctorExist = await prisma.doctor.findUnique({
+            where: {
+                id: doctorId
+            }
         });
+
+        if (!isDoctorExist) {
+            throw new AppErrors(status.NOT_FOUND, "Doctor Not Found by this ID!")
+        };
+
+        const { doctor: doctorData, specialties } = payload;
+
+        await prisma.$transaction(async (tx) => {
+            if (doctorData) {
+                await tx.doctor.update({
+                    where: {
+                        id: doctorId
+                    },
+                    data: {
+                        ...doctorData
+                    }
+                });
+            };
+
+            if (specialties && specialties.length > 0) {
+                for (const specialty of specialties) {
+                    const { specialtyId, shouldDelete } = specialty;
+                    if (shouldDelete) {
+                        await tx.doctorSpecialty.delete({
+                            where: {
+                                doctorId_specialtyId: {
+                                    doctorId,
+                                    specialtyId,
+                                }
+                            }
+                        })
+                    }
+                    else {
+                        await tx.doctorSpecialty.upsert({
+                            where: {
+                                doctorId_specialtyId: {
+                                    doctorId,
+                                    specialtyId
+                                }
+                            },
+                            create: {
+                                doctorId,
+                                specialtyId
+                            },
+                            update: {}
+                        })
+                    }
+                };
+            };
+        });
+
+        const updatedData = await getDoctorById(doctorId);
 
         return updatedData;
     }
     catch (err) {
-        console.log("Update Doctor Error: ", err);
+        // console.log("Update Doctor Error: ", err);
         throw new AppErrors(status.INTERNAL_SERVER_ERROR, "Internal Server Error!");;
     }
 };
@@ -84,8 +139,18 @@ const updateDoctor = async (payload: Partial<IUpdateDoctor>, doctorId: string) =
 
 const deleteDoctor = async (doctorId: string) => {
     try {
-        const data = await prisma.$transaction(async (tx) => {
-            const doctorRes = await tx.doctor.update({
+        const isDoctorExist = await prisma.doctor.findUnique({
+            where: {
+                id: doctorId
+            }
+        });
+
+        if (!isDoctorExist) {
+            throw new AppErrors(status.NOT_FOUND, "Doctor not found by this ID!!");
+        };
+
+        await prisma.$transaction(async (tx) => {
+            await tx.doctor.update({
                 where: {
                     id: doctorId,
                     isDeleted: false
@@ -96,25 +161,35 @@ const deleteDoctor = async (doctorId: string) => {
                 }
             });
 
-
-            const userRes = await tx.user.update({
+            await tx.user.update({
                 where: {
-                    id: doctorRes.userId,
+                    id: isDoctorExist.userId,
                     isDeleted: false
                 },
                 data: {
                     isDeleted: true,
-                    deletedAt: new Date()
+                    deletedAt: new Date(),
+                    status: UserStatus.DELETED
                 }
             });
 
-            return { ...doctorRes, user: userRes };
+            await tx.session.deleteMany({
+                where: {
+                    userId: isDoctorExist.userId
+                }
+            });
+
+            await tx.doctorSpecialty.deleteMany({
+                where: {
+                    doctorId
+                }
+            });
         });
 
-        return data;
+        return { status: status.OK, message: "Doctor deleted successfully." };
     }
     catch (err) {
-        console.log("Delete Doctor Error: ", err);
+        // console.log("Delete Doctor Error: ", err);
         throw new AppErrors(status.INTERNAL_SERVER_ERROR, "Internal Server Error!");;
     }
 };
