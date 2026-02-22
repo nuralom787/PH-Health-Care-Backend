@@ -133,7 +133,7 @@ const deleteAdmin = async (adminId: string, user: IRequestUser) => {
     });
 
     return result;
-}
+};
 
 
 export const adminService = {
