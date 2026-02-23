@@ -92,3 +92,11 @@ export interface IRequestUser {
     role: Role;
     email: string;
 };
+
+
+// ! Password Related Interfaces.
+
+export interface IChangePasswordPayload {
+    currentPassword: string,
+    newPassword: string
+};

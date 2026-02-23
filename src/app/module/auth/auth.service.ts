@@ -3,7 +3,7 @@ import AppErrors from "../../errorsHelpers/AppErrors";
 import { UserStatus } from "../../../generated/prisma/enums";
 import { auth } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
-import { IRegisterUserPayload, IRequestUser } from "../../shared/interface&types";
+import { IChangePasswordPayload, IRegisterUserPayload, IRequestUser } from "../../shared/interface&types";
 import { tokenUtils } from "../../utils/token";
 import { jwtUtils } from "../../utils/jwt";
 import { env } from "../../config/env";
@@ -220,9 +220,63 @@ const getNewToken = async (refreshToken: string, sessionToken: string) => {
 };
 
 
+const changePassword = async (payload: IChangePasswordPayload, sessionToken: string) => {
+    const session = await auth.api.getSession({
+        headers: new Headers({
+            Authorization: `Bearer ${sessionToken}`
+        })
+    });
+
+    if (!session) {
+        throw new AppErrors(status.UNAUTHORIZED, "invalid session token");
+    };
+
+    const { currentPassword, newPassword } = payload;
+
+    const result = await auth.api.changePassword({
+        body: {
+            currentPassword,
+            newPassword,
+            revokeOtherSessions: true
+        },
+        headers: new Headers({
+            Authorization: `Bearer ${sessionToken}`
+        })
+    });
+
+
+    const accessToken = tokenUtils.getAccessToken({
+        userId: session.user.id,
+        name: session.user.name,
+        email: session.user.email,
+        emailVerified: session.user.emailVerified,
+        role: session.user.role,
+        status: session.user.status,
+        isDeleted: session.user.isDeleted,
+    });
+
+    const refreshToken = tokenUtils.getRefreshToken({
+        userId: session.user.id,
+        name: session.user.name,
+        email: session.user.email,
+        emailVerified: session.user.emailVerified,
+        role: session.user.role,
+        status: session.user.status,
+        isDeleted: session.user.isDeleted,
+    });
+
+    return {
+        ...result,
+        accessToken,
+        refreshToken
+    };
+};
+
+
 export const authService = {
     createUser,
     loginUser,
     getMe,
-    getNewToken
+    getNewToken,
+    changePassword
 };
