@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Gender, Role } from "../../generated/prisma/enums";
 
 export interface IRegisterUserPayload {
@@ -99,4 +100,19 @@ export interface IRequestUser {
 export interface IChangePasswordPayload {
     currentPassword: string,
     newPassword: string
+};
+
+
+// ! Email Sending Related Interfaces.
+
+export interface SendEmailOptions {
+    to: string;
+    subject: string;
+    templateName: string;
+    templateData: Record<string, any>;
+    attachments?: {
+        fileName: string;
+        content: Buffer | string;
+        contentType: string;
+    }[]
 };
