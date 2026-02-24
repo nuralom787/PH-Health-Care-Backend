@@ -305,6 +305,70 @@ const verifyEmail = async (email: string, otp: string) => {
 };
 
 
+const forgetPassword = async (email: string) => {
+    const isUserExist = await prisma.user.findUnique({
+        where: {
+            email
+        }
+    });
+
+    if (!isUserExist) {
+        throw new AppErrors(status.NOT_FOUND, "User not found");
+    };
+
+    if (!isUserExist.emailVerified) {
+        throw new AppErrors(status.BAD_REQUEST, "Email not verified");
+    };
+
+    if (isUserExist.isDeleted || isUserExist.status === UserStatus.DELETED) {
+        throw new AppErrors(status.NOT_FOUND, "User not found");
+    };
+
+    await auth.api.requestPasswordResetEmailOTP({
+        body: {
+            email
+        }
+    });
+
+};
+
+
+const resetpassword = async (email: string, otp: string, newPassword: string) => {
+    const isUserExist = await prisma.user.findUnique({
+        where: {
+            email
+        }
+    });
+
+    if (!isUserExist) {
+        throw new AppErrors(status.NOT_FOUND, "User not found");
+    };
+
+    if (!isUserExist.emailVerified) {
+        throw new AppErrors(status.BAD_REQUEST, "Email not verified");
+    };
+
+    if (isUserExist.isDeleted || isUserExist.status === UserStatus.DELETED) {
+        throw new AppErrors(status.NOT_FOUND, "User not found");
+    };
+
+    await auth.api.resetPasswordEmailOTP({
+        body: {
+            email,
+            otp,
+            password: newPassword
+        }
+    });
+
+    await prisma.session.deleteMany({
+        where: {
+            userId: isUserExist.id,
+        }
+    });
+};
+
+
+
 export const authService = {
     createUser,
     loginUser,
@@ -312,5 +376,7 @@ export const authService = {
     getNewToken,
     changePassword,
     logoutUser,
-    verifyEmail
+    verifyEmail,
+    forgetPassword,
+    resetpassword
 };
