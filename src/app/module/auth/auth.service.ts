@@ -124,6 +124,16 @@ const loginUser = async (email: string, password: string) => {
 };
 
 
+const googleLogin = async () => { }
+
+
+const googleLoginSuccess = async () => { }
+
+
+const handleOAuthError = async () => { }
+
+
+
 const getMe = async (user: IRequestUser) => {
     const isUserExist = await prisma.user.findUnique({
         where: {
@@ -371,6 +381,17 @@ const resetpassword = async (email: string, otp: string, newPassword: string) =>
         }
     });
 
+    if (isUserExist.needPasswordChange) {
+        await prisma.user.update({
+            where: {
+                id: isUserExist.id
+            },
+            data: {
+                needPasswordChange: false
+            }
+        });
+    };
+
     await prisma.session.deleteMany({
         where: {
             userId: isUserExist.id,
@@ -383,6 +404,9 @@ const resetpassword = async (email: string, otp: string, newPassword: string) =>
 export const authService = {
     createUser,
     loginUser,
+    googleLogin,
+    googleLoginSuccess,
+    handleOAuthError,
     getMe,
     getNewToken,
     changePassword,

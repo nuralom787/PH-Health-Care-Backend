@@ -7,6 +7,9 @@ import { notFound } from "./app/middleware/notFound";
 import { userRoutes } from "./app/module/user/user.route";
 import { doctorRoutes } from "./app/module/doctor/doctor.route";
 import status from "http-status";
+import { toNodeHandler } from "better-auth/node";
+import { auth } from "./app/lib/auth";
+import path from "node:path";
 
 const app: Application = express();
 
@@ -15,6 +18,13 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(express.json());
 app.use(cookieParser());
+
+// ! For Social and user authentications
+app.set("view engine", "ejs");
+app.set("views", path.resolve(process.cwd(), `src/app/templates`))
+
+// ! For Social and user authentications
+app.use("/api/auth", toNodeHandler(auth));
 
 // ! (User/Auth) Routes.
 app.use("/api/v1/auth", authRoutes);

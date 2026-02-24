@@ -4,8 +4,11 @@ import { prisma } from "./prisma";
 import { Role, UserStatus } from "../../generated/prisma/enums";
 import { bearer, emailOTP } from "better-auth/plugins";
 import { sendEmail } from "../utils/email";
+import { env } from "../config/env";
 
 export const auth = betterAuth({
+    baseURL: env.BETTER_AUTH_URL,
+    secret: env.BETTER_AUTH_SECRET,
     trustedOrigins: [process.env.BETTER_AUTH_URL || "http://localhost:5000"],
     database: prismaAdapter(prisma, {
         provider: "postgresql",
@@ -18,6 +21,23 @@ export const auth = betterAuth({
         sendOnSignUp: true,
         sendOnSignIn: true,
         autoSignInAfterVerification: true
+    },
+    socialProviders: {
+        google: {
+            clientId: env.GOOGLE_CLIENT_ID,
+            clientSecret: env.GOOGLE_CLIENT_SECRET,
+            redirectURI: env.FRONTEND_URL,
+            mapProfileToUser: () => {
+                return {
+                    role: Role.PATIENT,
+                    status: UserStatus.ACTIVE,
+                    needPasswordChange: false,
+                    emailVerified: true,
+                    isDeleted: false,
+                    deletedAt: null
+                }
+            }
+        }
     },
     user: {
         additionalFields: {
@@ -103,5 +123,27 @@ export const auth = betterAuth({
             expiresIn: 2 * 60,
             otpLength: 6,
         })
-    ]
+    ],
+    advanced: {
+        // disableCSRFCheck:false
+        useSecureCookies: false,
+        cookies: {
+            state: {
+                attributes: {
+                    sameSite: "none",
+                    secure: true,
+                    httpOnly: true,
+                    path: "/"
+                }
+            },
+            sessionToken: {
+                attributes: {
+                    sameSite: "none",
+                    secure: true,
+                    httpOnly: true,
+                    path: "/"
+                }
+            }
+        }
+    }
 });

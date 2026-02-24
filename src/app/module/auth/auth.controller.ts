@@ -55,6 +55,39 @@ const loginUser = catchAsync(
     }
 );
 
+const googleLogin = catchAsync(
+    async (req: Request, res: Response) => {
+        sendResponse(res, {
+            httpStatusCode: status.OK,
+            success: true,
+            message: "User Login Successfully",
+            data: null
+        })
+    }
+);
+
+const googleLoginSuccess = catchAsync(
+    async (req: Request, res: Response) => {
+        sendResponse(res, {
+            httpStatusCode: status.OK,
+            success: true,
+            message: "User Login Successfully",
+            data: null
+        })
+    }
+);
+
+const handleOAuthError = catchAsync(
+    async (req: Request, res: Response) => {
+        sendResponse(res, {
+            httpStatusCode: status.OK,
+            success: true,
+            message: "User Login Successfully",
+            data: null
+        })
+    }
+);
+
 const getMe = catchAsync(
     async (req: Request, res: Response) => {
         const user = req.user;
@@ -193,6 +226,9 @@ const resetPassword = catchAsync(
 export const authController = {
     createUser,
     loginUser,
+    googleLogin,
+    googleLoginSuccess,
+    handleOAuthError,
     getMe,
     getNewToken,
     changePassword,
