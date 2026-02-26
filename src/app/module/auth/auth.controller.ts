@@ -6,6 +6,8 @@ import status from "http-status";
 import { tokenUtils } from "../../utils/token";
 import AppErrors from "../../errorsHelpers/AppErrors";
 import { cookieUtils } from "../../utils/cookie";
+import { env } from "../../config/env";
+import { auth } from "../../lib/auth";
 
 
 const createUser = catchAsync(
@@ -57,34 +59,59 @@ const loginUser = catchAsync(
 
 const googleLogin = catchAsync(
     async (req: Request, res: Response) => {
-        sendResponse(res, {
-            httpStatusCode: status.OK,
-            success: true,
-            message: "User Login Successfully",
-            data: null
-        })
+        const redirectPath = req.query.redirect || "/dashboard";
+        const encodedRedirectPath = encodeURIComponent(redirectPath as string);
+
+        const callbackURL = `${env.BETTER_AUTH_URL}/api/v1/auth/google/success?redirect=${encodedRedirectPath}`;
+        res.render("googleRedirect", {
+            callbackURL: callbackURL,
+            betterAuthUrl: env.BETTER_AUTH_URL
+        });
     }
 );
 
 const googleLoginSuccess = catchAsync(
     async (req: Request, res: Response) => {
-        sendResponse(res, {
-            httpStatusCode: status.OK,
-            success: true,
-            message: "User Login Successfully",
-            data: null
-        })
+        const redirectPath = req.query.redirect as string || "/dashboard";
+        const sessionToken = req.cookies["better-auth.session_token"];
+
+        if (!sessionToken) {
+            return res.redirect(`${env.FRONTEND_URL}/login?error=oauth_failed`);
+        };
+
+        const session = await auth.api.getSession({
+            headers: {
+                "Cookie": `better-auth.session_token=${sessionToken}`
+            }
+        });
+
+        if (!session) {
+            return res.redirect(`${env.FRONTEND_URL}/login?error=no_session_found`);
+        };
+
+
+        if (session && !session.user) {
+            return res.redirect(`${env.FRONTEND_URL}/login?error=no_user_found`);
+        };
+
+        const result = await authService.googleLoginSuccess(session);
+
+        const { accessToken, refreshToken } = result;
+
+        tokenUtils.setAccessTokenCookie(res, accessToken);
+        tokenUtils.setRefreshTokenCookie(res, refreshToken);
+
+        const isValidRedirectPath = redirectPath.startsWith("/") && !redirectPath.startsWith("//");
+        const finalRedirectPath = isValidRedirectPath ? redirectPath : "/dashboard";
+
+        res.redirect(`${env.FRONTEND_URL}${finalRedirectPath}`);
     }
 );
 
 const handleOAuthError = catchAsync(
     async (req: Request, res: Response) => {
-        sendResponse(res, {
-            httpStatusCode: status.OK,
-            success: true,
-            message: "User Login Successfully",
-            data: null
-        })
+        const error = req.query.error as string || "oauth_failed";
+        res.redirect(`${env.FRONTEND_URL}/login?error=${error}`);
     }
 );
 
