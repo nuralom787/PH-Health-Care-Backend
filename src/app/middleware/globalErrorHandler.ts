@@ -8,10 +8,21 @@ import status from "http-status";
 import { TErrorResponse, TErrorSources } from "../shared/interface&types";
 import z from "zod";
 import AppErrors from "../errorsHelpers/AppErrors";
+import { deleteFileFormCloudinary } from "../config/cloudinary.config";
 
-export const globalErrorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
+export const globalErrorHandler = async (err: any, req: Request, res: Response, next: NextFunction) => {
     if (env.NODE_ENV === "development") {
         console.log("Error From Global Error Handler: ", err);
+    };
+
+    if (req.file) {
+        await deleteFileFormCloudinary(req.file.path);
+    };
+
+    if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+        const imageUrls = req.files.map((file) => file.path);
+
+        await Promise.all(imageUrls.map(url => deleteFileFormCloudinary(url)));
     };
 
     let errorSources: TErrorSources[] = [];
