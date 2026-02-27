@@ -9,7 +9,7 @@ import { env } from "../config/env";
 export const auth = betterAuth({
     baseURL: env.BETTER_AUTH_URL,
     secret: env.BETTER_AUTH_SECRET,
-    trustedOrigins: [process.env.BETTER_AUTH_URL || "http://localhost:5000", env.FRONTEND_URL],
+    trustedOrigins: [env.BETTER_AUTH_URL || "http://localhost:5000", env.FRONTEND_URL],
     database: prismaAdapter(prisma, {
         provider: "postgresql",
     }),
@@ -26,7 +26,6 @@ export const auth = betterAuth({
         google: {
             clientId: env.GOOGLE_CLIENT_ID,
             clientSecret: env.GOOGLE_CLIENT_SECRET,
-            redirectURI: env.FRONTEND_URL,
             mapProfileToUser: () => {
                 return {
                     role: Role.PATIENT,
@@ -145,5 +144,8 @@ export const auth = betterAuth({
                 }
             }
         }
-    }
+    },
+    redirectURLs: {
+        signIn: `${env.BETTER_AUTH_URL}/api/v1/auth/google/success`,
+    },
 });

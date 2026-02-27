@@ -21,13 +21,14 @@ const getAllSpecialties = catchAsync(
 
 const createSpecialty = catchAsync(
     async (req: Request, res: Response) => {
-        const result = await specialtyService.createSpecialty(req.body);
+        // console.log(req.body);
+        // const result = await specialtyService.createSpecialty(req.body);
 
         sendResponse(res, {
             httpStatusCode: status.CREATED,
             success: true,
             message: "Specialty Created Successfully",
-            data: result
+            data: req.file
         });
     }
 );
