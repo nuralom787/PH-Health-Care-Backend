@@ -3,17 +3,21 @@ import { catchAsync } from "../../shared/catchAsync";
 import { sendResponse } from "../../shared/sendResponse";
 import status from "http-status";
 import { doctorService } from "./doctor.service";
+import { IQueryParams } from "../../shared/interface&types";
 
 
 const getAllDoctors = catchAsync(
     async (req: Request, res: Response) => {
-        const result = await doctorService.getAllDoctors();
+        const query = req.query;
+
+        const result = await doctorService.getAllDoctors(query as IQueryParams);
 
         sendResponse(res, {
             httpStatusCode: status.OK,
             success: true,
             message: "Fetch Doctors Data Successfully",
-            data: result
+            data: result.data,
+            meta: result.meta
         });
     }
 );

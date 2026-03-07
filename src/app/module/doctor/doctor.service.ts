@@ -2,27 +2,57 @@
 import status from "http-status";
 import AppErrors from "../../errorsHelpers/AppErrors";
 import { prisma } from "../../lib/prisma";
-import { IUpdateDoctor } from "../../shared/interface&types";
+import { IQueryParams, IUpdateDoctor } from "../../shared/interface&types";
 import { UserStatus } from "../../../generated/prisma/enums";
+import { QueryBuilder } from "../../utils/QueryBuilder";
+import { doctorFilterableFields, doctorIncludeConfig, doctorSearchableFields } from "./doctor.constant";
+import { Doctor, Prisma } from "../../../generated/prisma/client";
 
 
-const getAllDoctors = async () => {
+const getAllDoctors = async (query: IQueryParams) => {
     try {
-        const res = await prisma.doctor.findMany({
-            where: {
-                isDeleted: false
-            },
-            include: {
-                user: true,
-                specialties: {
-                    include: {
-                        specialty: true
-                    }
-                }
-            }
-        });
+        // const res = await prisma.doctor.findMany({
+        //     where: {
+        //         isDeleted: false
+        //     },
+        //     include: {
+        //         user: true,
+        //         specialties: {
+        //             include: {
+        //                 specialty: true
+        //             }
+        //         }
+        //     }
+        // });
 
-        return res;
+        // return res;
+
+        const queryBuilder = new QueryBuilder<Doctor, Prisma.DoctorWhereInput, Prisma.DoctorInclude>(
+            prisma.doctor,
+            query,
+            {
+                searchableFields: doctorSearchableFields,
+                filterableFields: doctorFilterableFields,
+            }
+        );
+
+        const result = await queryBuilder
+            .search()
+            .filter()
+            .where({ isDeleted: false })
+            .include({
+                user: true,
+                specialties: true
+            })
+            .dynamicInclude(doctorIncludeConfig)
+            .paginate()
+            .sort()
+            .fields()
+            .execute()
+
+        return result;
+
+
     } catch (err) {
         // console.log(err);
         throw new AppErrors(status.INTERNAL_SERVER_ERROR, "Internal Server Error!");;

@@ -12,9 +12,11 @@ import { auth } from "./app/lib/auth";
 import path from "node:path";
 import cors from "cors";
 import { env } from "./app/config/env";
+import qs from "qs";
 
 const app: Application = express();
 
+app.set("query parser", (string: string) => qs.parse(string));
 app.set("view engine", "ejs");
 app.set("views", path.resolve(process.cwd(), `src/app/templates`))
 
