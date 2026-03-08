@@ -9,12 +9,12 @@ export class QueryBuilder<T, TWhereInput = Record<string, unknown>, TInclude = R
     private skip: number = 0;
     private sortBy: string = 'createdAt';
     private sortOrder: 'asc' | 'desc' = 'desc';
-    private selectFields: Record<string, boolean | undefined> = {};
+    private selectFields: Record<string, boolean> | undefined;
 
     constructor(
         private model: PrismaModelDelegate,
         private queryParams: IQueryParams,
-        private config: IQueryConfig,
+        private config: IQueryConfig = {},
     ) {
         this.query = {
             where: {},
@@ -61,8 +61,10 @@ export class QueryBuilder<T, TWhereInput = Record<string, unknown>, TInclude = R
 
                         return {
                             [relation]: {
-                                [nestedRelation]: {
-                                    [nestedField]: stringFilter
+                                some: {
+                                    [nestedRelation]: {
+                                        [nestedField]: stringFilter
+                                    }
                                 }
                             }
                         }
@@ -95,7 +97,7 @@ export class QueryBuilder<T, TWhereInput = Record<string, unknown>, TInclude = R
 
         const { filterableFields } = this.config;
 
-        const excludedField = ['searchTerm', 'page', 'limit', 'sortBy', 'sortOrder', 'fields', 'includes'];
+        const excludedField = ['searchTerm', 'page', 'limit', 'sortBy', 'sortOrder', 'fields', 'include'];
 
         const filterParams: Record<string, unknown> = {};
 
@@ -117,9 +119,6 @@ export class QueryBuilder<T, TWhereInput = Record<string, unknown>, TInclude = R
 
             const isAllowedField = !filterableFields || filterableFields.length === 0 || filterableFields.includes(key);
 
-            if (!isAllowedField) {
-                return
-            };
 
             if (key.includes(".")) {
                 const parts = key.split(".");
@@ -136,41 +135,44 @@ export class QueryBuilder<T, TWhereInput = Record<string, unknown>, TInclude = R
                         countQueryWhere[relation] = {};
                     }
 
-                    queryWhere[relation] = {
-                        [nestedField]: this.parseFilterValue(value)
-                    }
+                    const queryRelation = queryWhere[relation] as Record<string, unknown>;
+                    const countRelation = countQueryWhere[relation] as Record<string, unknown>;
 
-                    countQueryWhere[relation] = {
-                        [nestedField]: this.parseFilterValue(value)
-                    }
+                    queryRelation[nestedField] = this.parseFilterValue(value);
+                    countRelation[nestedField] = this.parseFilterValue(value);
                     return;
                 }
-                else if (parts.length === 3) {
-                    const [relation, nestedRelation, nestedField] = parts;
+                // else if (parts.length === 3) {
+                //     const [relation, nestedRelation, nestedField] = parts;
 
-                    if (!queryWhere[relation]) {
-                        queryWhere[relation] = {};
-                        countQueryWhere[relation] = {};
-                    }
+                //     if (!queryWhere[relation]) {
+                //         queryWhere[relation] = {};
+                //         countQueryWhere[relation] = {};
+                //     }
 
-                    queryWhere[relation] = {
-                        [nestedRelation]: {
-                            [nestedField]: this.parseFilterValue(value)
-                        }
-                    }
+                //     const queryRelation = queryWhere[relation] as Record<string, unknown>;
+                //     const countRelation = countQueryWhere[relation] as Record<string, unknown>;
 
-                    countQueryWhere[relation] = {
-                        [nestedRelation]: {
-                            [nestedField]: this.parseFilterValue(value)
-                        }
-                    }
-                    return;
-                }
+                //     if (!queryRelation[nestedRelation]) {
+                //         queryRelation[nestedRelation] = {};
+                //     }
+
+                //     if (!countRelation[nestedRelation]) {
+                //         countRelation[nestedRelation] = {};
+                //     }
+
+                //     const queryNestedRelation = queryRelation[nestedRelation] as Record<string, unknown>;
+                //     const countNestedRelation = countRelation[nestedRelation] as Record<string, unknown>;
+
+                //     queryNestedRelation[nestedField] = this.parseFilterValue(value);
+                //     countNestedRelation[nestedField] = this.parseFilterValue(value);
+
+                //     return;
+                // }
             }
-            else {
-                queryWhere[key] = this.parseFilterValue(value);
-                countQueryWhere[key] = this.parseFilterValue(value);
-                return;
+
+            if (!isAllowedField) {
+                return
             };
 
             if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
@@ -218,7 +220,8 @@ export class QueryBuilder<T, TWhereInput = Record<string, unknown>, TInclude = R
                         [nestedField]: sortOrder
                     }
                 }
-            } else if (parts.length === 3) {
+            }
+            else if (parts.length === 3) {
                 const [relation, nestedRelation, nestedField] = parts;
                 this.query.orderBy = {
                     [relation]: {
@@ -227,10 +230,16 @@ export class QueryBuilder<T, TWhereInput = Record<string, unknown>, TInclude = R
                         }
                     }
                 }
-            } else {
+            }
+            else {
                 this.query.orderBy = {
                     [sortBy]: sortOrder
                 }
+            }
+        }
+        else {
+            this.query.orderBy = {
+                [sortBy]: sortOrder
             }
         }
 
@@ -283,7 +292,7 @@ export class QueryBuilder<T, TWhereInput = Record<string, unknown>, TInclude = R
             }
         });
 
-        const includeParam = this.queryParams.includes as string | undefined;
+        const includeParam = this.queryParams.include as string | undefined;
 
         if (includeParam && typeof includeParam === 'string') {
             const requestedRelations = includeParam.split(",").map(rel => rel.trim());
@@ -348,6 +357,9 @@ export class QueryBuilder<T, TWhereInput = Record<string, unknown>, TInclude = R
                 else {
                     result[key] = source[key];
                 }
+            }
+            else {
+                result[key] = source[key];
             }
         }
         return result;
